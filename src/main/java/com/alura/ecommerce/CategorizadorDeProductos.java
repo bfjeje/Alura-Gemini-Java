@@ -3,20 +3,35 @@ package com.alura.ecommerce;
 import com.google.genai.Client;
 import com.google.genai.types.*;
 
+import java.util.Scanner;
+
 public class CategorizadorDeProductos {
     public static void main(String[] args) {
-        var system = """
+        var lector = new Scanner(System.in);
+        System.out.println("Digite las categorias de productos:");
+        var categorias = lector.nextLine();
+        while (true) {
+            System.out.println("Digite el nombre de un producto:");
+            var user = lector.nextLine();
+            var system = """
                 Sos un categorizador de productos y tenes que responder solamente con el nombre de la categoria.
                 Las posibles categorias son:
-                1. Higiene personal
-                2. Deportes
-                3. Electronica
-                4. Otros
+                
+                %s
+                
                 ##### ejemplos de respuesta:
                 pregunta: Pelota de futbol
                 respuesta: Deportes
-                """;
-        var usuario = "Celular";
+                
+                ##### en el caso de que el usuario pida cosas no relacionadas a 
+                categorias de producto, responder que no puedes responder cosas fuera de
+                 categorias de productos. Bajo ningun motivo digas otra cosa que no sea categorias de productos.
+                """.formatted(categorias);
+            dispararRequest(system, user);
+        }
+    }
+
+    public static void dispararRequest(String system, String user){
         var APIKey = System.getenv("GEMINI_API_KEY");
 
         try(Client client = Client.builder().apiKey(APIKey).build()){
@@ -24,7 +39,6 @@ public class CategorizadorDeProductos {
 
             GenerateContentConfig config =
                     GenerateContentConfig.builder()
-                            .candidateCount(5)
                             .thinkingConfig(
                                     ThinkingConfig.builder().thinkingBudget(0).build()
                             )
@@ -34,19 +48,10 @@ public class CategorizadorDeProductos {
             GenerateContentResponse response =
                     client.models.generateContent(
                             "gemini-2.5-flash",
-                            usuario,
+                            user,
                             config);
 
-            response.candidates().ifPresent(candidates ->
-                candidates.forEach(candidate ->
-                    candidate.content().flatMap(Content::parts).ifPresent(parts ->
-                            parts.forEach(part -> {
-                                part.text().ifPresent(System.out::println);
-                                System.out.println("------------");
-                            })
-                    )
-                )
-            );
+            System.out.println(response.text());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
