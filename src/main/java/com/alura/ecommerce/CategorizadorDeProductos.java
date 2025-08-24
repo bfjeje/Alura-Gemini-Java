@@ -5,8 +5,18 @@ import com.google.genai.types.*;
 
 public class CategorizadorDeProductos {
     public static void main(String[] args) {
-        var system = "Sos un categorizador de productos";
-        var usuario = "Cepillo de dientes";
+        var system = """
+                Sos un categorizador de productos y tenes que responder solamente con el nombre de la categoria.
+                Las posibles categorias son:
+                1. Higiene personal
+                2. Deportes
+                3. Electronica
+                4. Otros
+                ##### ejemplos de respuesta:
+                pregunta: Pelota de futbol
+                respuesta: Deportes
+                """;
+        var usuario = "Celular";
         var APIKey = System.getenv("GEMINI_API_KEY");
 
         try(Client client = Client.builder().apiKey(APIKey).build()){
