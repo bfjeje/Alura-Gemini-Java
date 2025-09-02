@@ -21,7 +21,7 @@ public class IdentificadorDePerfil {
     private static String cargarClientesDelArchivo() {
         try {
             var path = Path.of(ClassLoader
-                    .getSystemResource("compras/lista_de_compras_10_clientes.csv")
+                    .getSystemResource("compras/lista_de_compras_100_clientes.csv")
                     .toURI());
             return Files.readAllLines(path).toString();
         } catch (Exception e) {
@@ -45,9 +45,16 @@ public class IdentificadorDePerfil {
                             .systemInstruction(systemInstruction)
                             .build();
 
+            var modelo = "gemini-2.5-flash";
+            var cantidadTokens = contadorDeTokens(client, user);
+            if (cantidadTokens > 4096)
+                modelo = "gemini-2.5-flash-lite";
+
+            System.out.println("Cantidad de tokens: "+cantidadTokens);
+            System.out.println("Modelo seleccionado: "+modelo);
             GenerateContentResponse response =
                     client.models.generateContent(
-                            "gemini-2.5-flash",
+                            modelo,
                             user,
                             config);
 
@@ -55,5 +62,17 @@ public class IdentificadorDePerfil {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static Integer contadorDeTokens(Client client, String user) {
+        var contador = client.models.countTokens(
+                "gemini-2.5-flash-lite",
+                user,
+                CountTokensConfig.builder().build()
+        );
+        if (contador.totalTokens().isPresent()) {
+            return contador.totalTokens().get();
+        }
+        return -1;
     }
 }
