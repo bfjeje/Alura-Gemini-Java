@@ -1,6 +1,7 @@
 package com.alura.ecommerce;
 
 import com.google.genai.Client;
+import com.google.genai.errors.ClientException;
 import com.google.genai.types.*;
 
 import java.nio.file.Files;
@@ -9,7 +10,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 public class AnalisisDeSentimientos {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         var archivos = cargarArchivosDeResenas();
         for (Path archivo: archivos){
             System.out.println("Iniciando analisis de "+archivo.getFileName().toString());
@@ -32,21 +33,36 @@ public class AnalisisDeSentimientos {
         return List.of();
     }
 
-    public static String dispararRequest(Path archivo) {
+    public static String dispararRequest(Path archivo) throws InterruptedException {
         var APIKey = System.getenv("GEMINI_API_KEY");
         var config = generarConfigDeSystema();
         var user = cargarArchivo(archivo);
 
-        try(Client client = Client.builder().apiKey(APIKey).build()){
-            GenerateContentResponse response =
-                    client.models.generateContent(
-                            "gemini-2.5-flash-lite",
-                            user,
-                            config);
-            return response.text();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        var intentos = 0;
+        while (intentos++ <= 3){
+            try(Client client = Client.builder().apiKey(APIKey).build()){
+                GenerateContentResponse response =
+                        client.models.generateContent(
+                                "gemini-2.5-flash-lite",
+                                user,
+                                config);
+                return response.text();
+            } catch (ClientException e) {
+                var httpCode = e.code();
+
+                switch (httpCode) {
+                    case 400 -> throw new RuntimeException("API Key incorrecta", e);
+                    case 404 -> throw new RuntimeException("Modelo no existente", e);
+                    case 500, 503 -> {
+                        System.out.println("API indisponible. Intentando nuevamente en breve.");
+                        Thread.sleep(1000*5);
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
+        return "";
     }
 
     private static GenerateContentConfig generarConfigDeSystema() {
