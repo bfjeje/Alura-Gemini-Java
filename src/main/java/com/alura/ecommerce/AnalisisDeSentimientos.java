@@ -34,6 +34,22 @@ public class AnalisisDeSentimientos {
 
     public static String dispararRequest(Path archivo) {
         var APIKey = System.getenv("GEMINI_API_KEY");
+        var config = generarConfigDeSystema();
+        var user = cargarArchivo(archivo);
+
+        try(Client client = Client.builder().apiKey(APIKey).build()){
+            GenerateContentResponse response =
+                    client.models.generateContent(
+                            "gemini-2.5-flash-lite",
+                            user,
+                            config);
+            return response.text();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static GenerateContentConfig generarConfigDeSystema() {
         var system = """
             Sos un analizador de sentimientos de reseñas de productos.
             Escribe un parrafo con hasta 50 palabras resumiendo las reseñas, y después di cual es el sentimiento general para ese producto.
@@ -46,30 +62,15 @@ public class AnalisisDeSentimientos {
             Puntos fuertes: [3 bullets points]
             Puntos debiles: [3 bullets points]
             """;
-        var user = cargarArchivo(archivo);
-        try(Client client = Client.builder().apiKey(APIKey).build()){
-            Content systemInstruction = Content.fromParts(Part.fromText(system));
-
-            GenerateContentConfig config =
-                    GenerateContentConfig.builder()
-                            .thinkingConfig(
-                                    ThinkingConfig.builder()
-                                            .thinkingBudget(0)
-                                            .build()
-                            )
-                            .systemInstruction(systemInstruction)
-                            .build();
-
-            GenerateContentResponse response =
-                    client.models.generateContent(
-                            "gemini-2.5-flash-lite",
-                            user,
-                            config);
-
-            return response.text();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        Content systemInstruction = Content.fromParts(Part.fromText(system));
+        return GenerateContentConfig.builder()
+                        .thinkingConfig(
+                                ThinkingConfig.builder()
+                                        .thinkingBudget(0)
+                                        .build()
+                        )
+                        .systemInstruction(systemInstruction)
+                        .build();
     }
 
     private static String cargarArchivo(Path archivo) {
