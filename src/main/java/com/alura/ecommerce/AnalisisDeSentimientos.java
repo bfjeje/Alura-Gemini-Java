@@ -21,11 +21,22 @@ public class AnalisisDeSentimientos {
             Puntos fuertes: [3 bullets points]
             Puntos debiles: [3 bullets points]
             """;
-        var producto = "colchoneta-de-yoga";
-        var user = cargarArchivo(producto);
-
-        var respuesta = dispararRequest(system, user);
-        guardarAnalisis(producto, respuesta);
+        try {
+            var carpetaResena = Path.of("src/main/resources/resenas");
+            var archivos = Files
+                    .walk(carpetaResena, 1)
+                    .filter(path -> path.toString().endsWith(".txt"))
+                    .toList();
+            for (Path archivo: archivos){
+                System.out.println("Iniciando analisis de "+archivo.getFileName().toString());
+                var user = cargarArchivo(archivo);
+                var respuesta = dispararRequest(system, user);
+                guardarAnalisis(archivo.getFileName().toString().replace(".txt",""), respuesta);
+                System.out.println("Fin del analisis");
+            }
+        } catch (Exception e) {
+            System.out.println("Hubo un problema al analisar sentimientos");
+        }
     }
 
     public static String dispararRequest(String system, String user){
@@ -56,12 +67,9 @@ public class AnalisisDeSentimientos {
         }
     }
 
-    private static String cargarArchivo(String archivo) {
+    private static String cargarArchivo(Path archivo) {
         try {
-            var path = Path.of(ClassLoader
-                    .getSystemResource("resenas/resenas-"+archivo+".txt")
-                    .toURI());
-            return Files.readAllLines(path).toString();
+            return Files.readAllLines(archivo).toString();
         } catch (Exception e) {
             throw new RuntimeException("Error al cargar el archivo.",e);
         }
