@@ -38,6 +38,7 @@ public class AnalisisDeSentimientos {
         var config = generarConfigDeSystema();
         var user = cargarArchivo(archivo);
 
+        var segundosHastaProximoIntento = 5;
         var intentos = 0;
         while (intentos++ <= 3){
             try(Client client = Client.builder().apiKey(APIKey).build()){
@@ -49,13 +50,17 @@ public class AnalisisDeSentimientos {
                 return response.text();
             } catch (ClientException e) {
                 var httpCode = e.code();
-
                 switch (httpCode) {
                     case 400 -> throw new RuntimeException("API Key incorrecta", e);
                     case 404 -> throw new RuntimeException("Modelo no existente", e);
+                    case 429 -> {
+                        System.out.println("Limite de frecuencia alcanzada. Intentando nuevamente...");
+                        Thread.sleep(1000L *segundosHastaProximoIntento);
+                        segundosHastaProximoIntento *= 2;
+                    }
                     case 500, 503 -> {
                         System.out.println("API indisponible. Intentando nuevamente en breve.");
-                        Thread.sleep(1000*5);
+                        Thread.sleep(1000L *segundosHastaProximoIntento);
                     }
                 }
             } catch (Exception e) {
