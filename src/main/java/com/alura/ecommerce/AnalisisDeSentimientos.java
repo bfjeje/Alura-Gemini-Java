@@ -67,6 +67,8 @@ public class AnalisisDeSentimientos {
                             config);
 
             return response.text();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
